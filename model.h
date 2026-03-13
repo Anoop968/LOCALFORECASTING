@@ -1,68 +1,53 @@
 #pragma once
 #include <cstdarg>
+#include <cmath> // IMPORTANT: This is needed for percentage math
+
 namespace Eloquent {
     namespace ML {
         namespace Port {
             class LogisticRegression {
                 public:
                     /**
-                    * Predict class for features vector
+                    * Predict class (0 or 1)
                     */
                     int predict(float *x) {
-                        float votes[2] = { 0.425460240405  };
-                        votes[0] += dot(x,   -0.024452676732  , 0.004033816153 );
-                        // return argmax of votes
-                        uint8_t classIdx = 0;
-                        float maxVotes = votes[0];
-
-                        for (uint8_t i = 1; i < 2; i++) {
-                            if (votes[i] > maxVotes) {
-                                classIdx = i;
-                                maxVotes = votes[i];
-                            }
-                        }
-
-                        return classIdx;
+                        float score = calculateScore(x);
+                        return (score > 0) ? 0 : 1; // If score is positive, it's 'No Rain'
                     }
 
                     /**
-                    * Predict readable class name
+                    * Predict readable name
                     */
                     const char* predictLabel(float *x) {
-                        return idxToLabel(predict(x));
+                        return (predict(x) == 0) ? "No Rain" : "Rain";
                     }
 
                     /**
-                    * Convert class idx to readable name
+                    * THE MISSING FUNCTION: Predict Percentage
                     */
-                    const char* idxToLabel(uint8_t classIdx) {
-                        switch (classIdx) {
-                            case 0:
-                            return "No Rain";
-                            case 1:
-                            return "Rain";
-                            default:
-                            return "Houston we have a problem";
-                        }
+                    void predictProbabilities(float *x, float *probabilities) {
+                        float score = calculateScore(x);
+                        
+                        // Sigmoid Math: 1 / (1 + e^-score)
+                        // This gives the probability of 'No Rain' (Class 0)
+                        float p0 = 1.0 / (1.0 + exp(-score));
+                        
+                        probabilities[0] = p0;        // No Rain %
+                        probabilities[1] = 1.0 - p0;  // Rain %
                     }
 
                 protected:
                     /**
-                    * Compute dot product
+                    * Helper to calculate the raw weighted sum
                     */
-                    float dot(float *x, ...) {
-                        va_list w;
-                        va_start(w, 2);
-                        float dot = 0.0;
-
-                        for (uint16_t i = 0; i < 2; i++) {
-                            const float wi = va_arg(w, double);
-                            dot += x[i] * wi;
-                        }
-
-                        return dot;
+                    float calculateScore(float *x) {
+                        // These are the weights from your specific training session
+                        float score = 0.425460240405;       // Bias
+                        score += x[0] * -0.024452676732;    // Temperature Weight
+                        score += x[1] * 0.004033816153;     // Humidity Weight
+                        return score;
                     }
-                };
-            }
+            };
         }
     }
+}
